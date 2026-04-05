@@ -88,46 +88,56 @@ if uploaded_file:
 
         # Assistant response
         with st.chat_message("assistant"):
-            # 1. Generate code
-            with st.spinner("Generating code…"):
-                code = st.session_state.llm_client.get_code(question)
+            # 1. Get response from LLM (code or plain text)
+            with st.spinner("Thinking…"):
+                response = st.session_state.llm_client.get_response(question)
 
-            st.code(code, language="python")
-            st.session_state.chat.append({"role": "assistant", "kind": "code", "content": code})
-
-            # 2. Execute
-            with st.spinner("Running…"):
-                result = execute_code(code, df)
-
-            # 3. Retry once on failure
-            if not result["success"]:
-                with st.spinner("Fixing error…"):
-                    code = st.session_state.llm_client.retry_with_error(result["traceback"])
-                st.code(code, language="python")
+            if response["type"] == "text":
+                # Conversational reply — just display it, no execution
+                st.markdown(response["content"])
                 st.session_state.chat.append(
-                    {"role": "assistant", "kind": "code", "content": code}
+                    {"role": "assistant", "kind": "text", "content": response["content"]}
                 )
-                with st.spinner("Re-running…"):
+
+            else:
+                # Analytical reply — show code, execute, display output
+                code = response["content"]
+                st.code(code, language="python")
+                st.session_state.chat.append({"role": "assistant", "kind": "code", "content": code})
+
+                # 2. Execute
+                with st.spinner("Running…"):
                     result = execute_code(code, df)
 
-            # 4. Display output
-            if result["success"]:
-                if result["text"]:
-                    st.text(result["text"])
+                # 3. Retry once on failure
+                if not result["success"]:
+                    with st.spinner("Fixing error…"):
+                        code = st.session_state.llm_client.retry_with_error(result["traceback"])
+                    st.code(code, language="python")
                     st.session_state.chat.append(
-                        {"role": "assistant", "kind": "text", "content": result["text"]}
+                        {"role": "assistant", "kind": "code", "content": code}
                     )
-                if result["figure"]:
-                    st.pyplot(result["figure"])
+                    with st.spinner("Re-running…"):
+                        result = execute_code(code, df)
+
+                # 4. Display output
+                if result["success"]:
+                    if result["text"]:
+                        st.text(result["text"])
+                        st.session_state.chat.append(
+                            {"role": "assistant", "kind": "text", "content": result["text"]}
+                        )
+                    if result["figure"]:
+                        st.pyplot(result["figure"])
+                        st.session_state.chat.append(
+                            {"role": "assistant", "kind": "figure", "content": result["figure"]}
+                        )
+                else:
+                    msg = f"Failed after retry:\n\n```\n{result['traceback']}\n```"
+                    st.error(msg)
                     st.session_state.chat.append(
-                        {"role": "assistant", "kind": "figure", "content": result["figure"]}
+                        {"role": "assistant", "kind": "error", "content": msg}
                     )
-            else:
-                msg = f"Failed after retry:\n\n```\n{result['traceback']}\n```"
-                st.error(msg)
-                st.session_state.chat.append(
-                    {"role": "assistant", "kind": "error", "content": msg}
-                )
 
 else:
     st.info("Upload a CSV or Excel file in the sidebar to get started.")
