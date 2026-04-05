@@ -56,6 +56,27 @@ class LLMClient:
         self.history.append({"role": "assistant", "content": raw})
         return self._extract_code(raw)
 
+    def interpret_result(self, question: str, execution_output: str) -> str:
+        # Second LLM call: takes the raw execution output and writes a short
+        # plain-English interpretation for non-technical stakeholders.
+        prompt = (
+            f"The user asked: {question}\n\n"
+            f"The analysis produced this output:\n{execution_output}\n\n"
+            "Write 2-4 sentences interpreting the key findings in plain English "
+            "for a non-technical stakeholder. Be concise and highlight what matters most. "
+            "Do not repeat the raw numbers verbatim — summarise and give context."
+        )
+        client = Groq()
+        response = client.chat.completions.create(
+            model=self.model,
+            max_tokens=512,
+            messages=[
+                {"role": "system", "content": "You are a data analyst who explains findings clearly to non-technical stakeholders."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        return response.choices[0].message.content.strip()
+
     def reset(self):
         self.history = []
 

@@ -7,7 +7,7 @@ from agent.context_builder import build_schema_summary
 from agent.executor import execute_code
 from agent.llm_client import LLMClient
 
-# ── Page config ──────────────────────────────────────────────────────────────
+# ── Page config (UI set up) ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Analytics Assistant", layout="wide")
 st.title("Analytics Assistant")
 
@@ -31,7 +31,7 @@ with st.sidebar:
     if active_key:
         os.environ["GROQ_API_KEY"] = active_key
 
-    if st.button("Clear conversation"):
+    if st.button("Clear conversation"): #clear conversation button
         if "llm_client" in st.session_state:
             st.session_state.llm_client.reset()
         st.session_state.chat = []
@@ -39,7 +39,7 @@ with st.sidebar:
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 if uploaded_file:
-    file_key = uploaded_file.name + str(uploaded_file.size)
+    file_key = uploaded_file.name + str(uploaded_file.size) #file key is a combination of filename + filesize
 
     if st.session_state.get("file_key") != file_key:
         with st.spinner("Loading data…"):
@@ -62,6 +62,7 @@ if uploaded_file:
             st.text(st.session_state.schema)
 
     # ── Render chat history ───────────────────────────────────────────────────
+    # every mesasge in st.session_state.chat is a dict with role, kind, and content. EACH KIND gets a different display treatment.
     for entry in st.session_state.get("chat", []):
         with st.chat_message(entry["role"]):
             kind = entry["kind"]
@@ -77,7 +78,7 @@ if uploaded_file:
     # ── Chat input ────────────────────────────────────────────────────────────
     question = st.chat_input("Ask a question about your data…")
     if question:
-        if not active_key:
+        if not active_key: #reminding the user to put in an API key for the LLM
             st.error("Add your Groq API key in the sidebar first.")
             st.stop()
 
@@ -131,6 +132,17 @@ if uploaded_file:
                         st.pyplot(result["figure"])
                         st.session_state.chat.append(
                             {"role": "assistant", "kind": "figure", "content": result["figure"]}
+                        )
+
+                    # 5. Second LLM call: interpret the result in plain English for stakeholders
+                    if result["text"] or result["figure"]:
+                        with st.spinner("Interpreting…"):
+                            interpretation = st.session_state.llm_client.interpret_result(
+                                question, result["text"]
+                            )
+                        st.markdown(interpretation)
+                        st.session_state.chat.append(
+                            {"role": "assistant", "kind": "text", "content": interpretation}
                         )
                 else:
                     msg = f"Failed after retry:\n\n```\n{result['traceback']}\n```"
