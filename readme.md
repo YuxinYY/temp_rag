@@ -138,7 +138,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Upload a CSV or Excel file via the sidebar, then type a question in the chat input.
+Upload a CSV or Excel file via the sidebar, put YOUR OWN Groq API key into the sidebar, and then type a question in the chat input.
 
 
 
