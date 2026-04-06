@@ -39,9 +39,20 @@ def execute_code(code: str, df: pd.DataFrame) -> dict:
         "isinstance": isinstance,
         "list": list,
         "dict": dict,
+        "set": set,
+        "tuple": tuple,
         "str": str,
         "int": int,
         "float": float,
+        "bool": bool,
+        "min": min,
+        "max": max,
+        "abs": abs,
+        "round": round,
+        "sorted": sorted,
+        "sum": sum,
+        "any": any,
+        "all": all,
     }
 
     scope = {

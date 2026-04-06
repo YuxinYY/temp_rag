@@ -127,7 +127,7 @@ if uploaded_file:
                 # 3. Retry once on failure
                 if not result["success"]:
                     with st.spinner("Fixing error…"):
-                        code = st.session_state.llm_client.retry_with_error(result["traceback"])
+                        code = st.session_state.llm_client.retry_with_error(result["traceback"], code)
                     st.code(code, language="python")
                     st.session_state.chat.append(
                         {"role": "assistant", "kind": "code", "content": code}

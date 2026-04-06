@@ -55,10 +55,12 @@ class LLMClient:
             return {"type": "code", "content": code}
         return {"type": "text", "content": raw.strip()}
 
-    def retry_with_error(self, traceback_str: str) -> str: #only a single retry
+    def retry_with_error(self, traceback_str: str, failed_code: str) -> str: #only a single retry
         error_msg = (
-            "The code raised an exception. Fix it and return only the corrected "
-            f"```python ... ``` block.\n\nTraceback:\n{traceback_str}"
+            "The following code raised an exception. Fix it and return only "
+            "the corrected ```python ... ``` block.\n\n"
+            f"Failed code:\n```python\n{failed_code}\n```\n\n"
+            f"Traceback:\n{traceback_str}"
         ) #the LLM sees its own mistaken code and could try to fix it
         self.history.append({"role": "user", "content": error_msg})
         raw = self._call_api()
@@ -103,8 +105,11 @@ class LLMClient:
 
     @staticmethod
     def _extract_code(text: str) -> str | None:
-        match = re.search(r"```python\s*(.*?)```", text, re.DOTALL)
-        if match:
-            return match.group(1).strip()
+        # Find all python code blocks and take the last one.
+        # On retry the LLM sometimes explains first then gives the fix,
+        # producing two blocks — the last one is always the intended version.
+        matches = re.findall(r"```python\s*(.*?)```", text, re.DOTALL)
+        if matches:
+            return matches[-1].strip()
         # No code block found — treat as a conversational text response
         return None
