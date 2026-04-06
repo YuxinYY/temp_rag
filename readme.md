@@ -1,6 +1,6 @@
 # Analytics Assistant
 
-A conversational data analytics agent that lets users ask plain-English questions about transaction data and receive Python-generated analysis and visualizations.
+A conversational data assistant that answers analytical questions on the data file you upload. Check out the video demo: https://drive.google.com/file/d/10l9s7sIl750_b3yr-j-LGR-l7_fZWQLJ/view?usp=sharing.
 
 ---
 
