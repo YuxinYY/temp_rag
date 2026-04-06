@@ -142,6 +142,13 @@ if uploaded_file:
                         st.session_state.chat.append(
                             {"role": "assistant", "kind": "text", "content": result["text"]}
                         )
+                        # Feed real execution output back into history so the LLM
+                        # sees actual data in follow-up questions instead of inferring
+                        # from its own code (which causes hallucinated numbers).
+                        st.session_state.llm_client.history.append({
+                            "role": "user",
+                            "content": f"[Execution result]\n{result['text']}"
+                        })
                     if result["figure"]:
                         st.pyplot(result["figure"])
                         st.session_state.chat.append(

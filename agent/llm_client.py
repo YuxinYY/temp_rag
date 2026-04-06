@@ -20,7 +20,7 @@ CONVERSATIONAL questions (e.g. "what columns are there?", "tell me about the dat
 
 ANALYTICAL questions that require computation (e.g. "what are the top 5 territories by sales?", \
 "show me a trend chart") → respond with ONLY a ```python ... ``` code block following these rules:
-1. The DataFrame is already loaded as `df`. Do NOT load any files or re-import libraries.
+1. The DataFrame is already loaded as `df`. Do NOT load any files, re-import libraries or define a pseudo dataframe in your code. 
 2. Available names in scope: `pd` (pandas), `plt` (matplotlib.pyplot), `sns` (seaborn).
 3. For tabular or scalar output, assign the final answer to a variable named `result` \
 and call `print(result)`.
