@@ -10,6 +10,9 @@ SYSTEM_PROMPT_TEMPLATE = """You are a data analyst assistant helping users explo
 DATASET SCHEMA:
 {schema}
 
+RELEVANT KNOWLEDGE BASE CONTEXT:
+{knowledge}
+
 Decide how to respond based on the nature of the question:
 
 CONVERSATIONAL questions (e.g. "what columns are there?", "tell me about the dataset", \
@@ -30,14 +33,20 @@ Do NOT call `plt.show()` or `plt.savefig()`.
 class LLMClient:
     def __init__(self, schema: str, model: str = "llama-3.3-70b-versatile"):
         self.model = model
-        self.system_prompt = SYSTEM_PROMPT_TEMPLATE.format(schema=schema)
-        #when the client is created, it fills in the {schema} placeholder with the actual output from context_builder.py. 
-        #self.history is an empty list that will accumulate the conversation turns as {"role": ..., "content":...} dicts. 
+        self.schema = schema
+        # system_prompt is built fresh per query (with retrieved knowledge injected)
+        # so we store the schema separately and format at call time
+        #self.history is an empty list that will accumulate the conversation turns as {"role": ..., "content":...} dicts.
         self.history: list[dict] = []
 
-    def get_response(self, user_question: str) -> dict:
+    def get_response(self, user_question: str, knowledge: str = "") -> dict:
         # Returns {"type": "code", "content": <code string>}
         #      or {"type": "text", "content": <plain text reply>}
+        # knowledge: top-k chunks retrieved from the RAG vector store for this query
+        self.system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+            schema=self.schema,
+            knowledge=knowledge if knowledge else "No additional context retrieved.",
+        )
         self.history.append({"role": "user", "content": user_question}) #appends the user question to history
         raw = self._call_api() #calls the API with the full history
         self.history.append({"role": "assistant", "content": raw}) #appends the LLM's raw response to history

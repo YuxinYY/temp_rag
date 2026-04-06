@@ -6,10 +6,20 @@ import streamlit as st
 from agent.context_builder import build_schema_summary
 from agent.executor import execute_code
 from agent.llm_client import LLMClient
+from agent.rag import build_vector_store, retrieve
 
 # ── Page config (UI set up) ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Analytics Assistant", layout="wide")
 st.title("Analytics Assistant")
+
+# ── Build RAG vector store once per session ───────────────────────────────────
+# Embeddings are persisted to disk so re-runs don't re-embed the knowledge base
+KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
+PERSIST_DIR = os.path.join(os.path.dirname(__file__), ".chromadb")
+
+if "rag_collection" not in st.session_state:
+    with st.spinner("Loading knowledge base…"):
+        st.session_state.rag_collection = build_vector_store(KNOWLEDGE_DIR, PERSIST_DIR)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -89,9 +99,13 @@ if uploaded_file:
 
         # Assistant response
         with st.chat_message("assistant"):
-            # 1. Get response from LLM (code or plain text)
+            # 1. Retrieve relevant knowledge chunks for this question
+            knowledge = retrieve(st.session_state.rag_collection, question)
+            st.sidebar.text_area("Retrieved context", knowledge, height=200)
+
+            # 2. Get response from LLM (code or plain text), with knowledge injected
             with st.spinner("Thinking…"):
-                response = st.session_state.llm_client.get_response(question)
+                response = st.session_state.llm_client.get_response(question, knowledge=knowledge)
 
             if response["type"] == "text":
                 # Conversational reply — just display it, no execution
