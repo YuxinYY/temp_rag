@@ -6,7 +6,7 @@ import streamlit as st
 from agent.context_builder import build_schema_summary
 from agent.executor import execute_code
 from agent.llm_client import LLMClient
-from agent.rag import build_vector_store, retrieve
+from agent.rag import build_vector_store, retrieve #pulls in the two functions from rag.py
 
 # ── Page config (UI set up) ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Analytics Assistant", layout="wide")
@@ -100,12 +100,12 @@ if uploaded_file:
         # Assistant response
         with st.chat_message("assistant"):
             # 1. Retrieve relevant knowledge chunks for this question
-            knowledge = retrieve(st.session_state.rag_collection, question)
-            st.sidebar.text_area("Retrieved context", knowledge, height=200)
+            knowledge = retrieve(st.session_state.rag_collection, question) #before calling the LLM, this first retrieves the topk relevant knowledge chunks for the user's question
+            st.sidebar.text_area("Retrieved context", knowledge, height=200) #the retrieved results are displayed on the side bar
 
             # 2. Get response from LLM (code or plain text), with knowledge injected
             with st.spinner("Thinking…"):
-                response = st.session_state.llm_client.get_response(question, knowledge=knowledge)
+                response = st.session_state.llm_client.get_response(question, knowledge=knowledge) #retrived context are passed as a second argument
 
             if response["type"] == "text":
                 # Conversational reply — just display it, no execution
@@ -174,3 +174,22 @@ if uploaded_file:
 
 else:
     st.info("Upload a CSV or Excel file in the sidebar to get started.")
+
+
+'''
+    user question
+        ↓
+    RAG retrieve() → top 5 knowledge chunks
+        ↓
+    LLM get_response(question + knowledge + schema) → code
+        ↓
+    execute_code() → result
+        ↓ (if fails)
+    retry_with_error(traceback + original code) → fixed code → re-execute
+        ↓ (if success)
+    result["text"] injected into history      ← hallucination fix
+        ↓
+    LLM interpret_result() → plain English summary   ← new
+        ↓
+    display: code + raw output + interpretation
+'''
